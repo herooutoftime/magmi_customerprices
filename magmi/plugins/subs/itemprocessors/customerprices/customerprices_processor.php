@@ -63,19 +63,25 @@ class CustomerpricesProcessor extends Magmi_ItemProcessor {
 
 	public function getCustomers()
 	{
-		$wawi_customers = array_column($this->_cpcol, 'name');
+		$customer_ident = $this->getParam("CUSTPRI:customer_ident", "wawi_customer_id");
+		$customer_ids = array_column($this->_cpcol, 'name');
 		$customerColl = Mage::getModel("customer/customer")->getCollection();
+		if($customer_ident != 'id')
+			$customerColl->addAttributeToSelect($customer_ident);
+
 		$customerColl
-			->addAttributeToSelect('wawi_customer_id')
-			->addAttributeToFilter('wawi_customer_id', array('in' => $wawi_customers))
+			->addAttributeToFilter($customer_ident, array('in' => $customer_ids))
 			->getSelect()
 			->reset(Zend_Db_Select::COLUMNS)
 			->columns('entity_id AS id')
-			->columns('at_wawi_customer_id.value AS wawi_customer_id')
 			->columns('email');
+
+		if($customer_ident != 'id')
+			$customerColl->getSelect()->columns("at_{$customer_ident}.value AS $customer_ident");
+
 		$customers = $customerColl->getData();
 		foreach ($customers as $index => $customer) {
-			$customers[$customer['wawi_customer_id']][] = $customer;
+			$customers[$customer[$customer_ident]][] = $customer;
 			unset($customers[$index]);
 		}
 		return $customers;
